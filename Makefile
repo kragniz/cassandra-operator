@@ -17,13 +17,25 @@ projectDir := $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 travis: make-all
 
-setup: setup-all recreate-dind-cluster
+setup: check-system-dependencies setup-all recreate-dind-cluster
 
 install: install-all
 
 clean: clean-all
 
 release: release-all
+
+check-system-dependencies:
+	@echo "== check-system-dependencies"
+ifeq (, $(shell which go))
+	@echo "golang not found, please install it - see https://golang.org/doc/install"
+endif
+ifeq (, $(shell which docker))
+	@echo "docker not found, please install it - see https://docs.docker.com/install"
+endif
+ifeq (, $(shell which dgoss))
+	@echo "dgoss not found, please install it - see https://github.com/aelsabbahy/goss#installation"
+endif
 
 make-all:
 	@echo "== make-all"
