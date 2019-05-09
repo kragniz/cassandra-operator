@@ -13,6 +13,7 @@ IMAGE_TO_DEPLOY ?= $(dockerTestImage)
 NAMESPACE ?= test-cassandra-operator
 GINKGO_NODES ?= 0
 GINKGO_COMPILERS ?= 0
+GO111MODULE="on"
 
 projectDir := $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 buildDir := $(projectDir)/build
@@ -40,8 +41,8 @@ setup:
 
 go-build: ensure-build-dir-exists
 	@echo "== build"
-	go build -o $(buildDir)/bin/cassandra-operator -v github.com/sky-uk/cassandra-operator/cassandra-operator/cmd/operator
-	KUBE_CONTEXT=ignore go test -run xxxxx $(testPkgs) # build the test code but don't run any tests yet
+	GO111MODULE=on go build -o $(buildDir)/bin/cassandra-operator -v github.com/sky-uk/cassandra-operator/cassandra-operator/cmd/operator
+	GO111MODULE=on KUBE_CONTEXT=ignore go test -run xxxxx $(testPkgs) # build the test code but don't run any tests yet
 
 go-install: go-build
 	@echo "== install"
