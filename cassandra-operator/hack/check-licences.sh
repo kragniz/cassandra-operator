@@ -4,6 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+export GO111MODULE="on"
+
 typeset -A licences
 licences=(
     [github.com/sky-uk/cassandra-operator/cassandra-operator]=BSD-3-Clause
