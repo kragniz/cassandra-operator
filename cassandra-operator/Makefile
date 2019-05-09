@@ -13,7 +13,6 @@ IMAGE_TO_DEPLOY ?= $(dockerTestImage)
 NAMESPACE ?= test-cassandra-operator
 GINKGO_NODES ?= 0
 GINKGO_COMPILERS ?= 0
-GO111MODULE="on"
 
 projectDir := $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 buildDir := $(projectDir)/build
@@ -36,13 +35,13 @@ check: check-style validate-licences test deploy-operator integration-test e2e-t
 
 setup:
 	@echo "== setup"
-	go get -v golang.org/x/lint/golint golang.org/x/tools/cmd/goimports github.com/sky-uk/licence-compliance-checker
-	go get -v github.com/onsi/ginkgo/ginkgo && cd $$GOPATH/src/github.com/onsi/ginkgo && git checkout 'v1.6.0' && go install github.com/onsi/ginkgo/ginkgo
+	GO111MODULE=off go get -v golang.org/x/lint/golint golang.org/x/tools/cmd/goimports github.com/sky-uk/licence-compliance-checker
+	GO111MODULE=off go get -v github.com/onsi/ginkgo/ginkgo && cd $$GOPATH/src/github.com/onsi/ginkgo && git checkout 'v1.6.0' && GO111MODULE=off go install github.com/onsi/ginkgo/ginkgo
 
 go-build: ensure-build-dir-exists
 	@echo "== build"
-	GO111MODULE=on go build -o $(buildDir)/bin/cassandra-operator -v github.com/sky-uk/cassandra-operator/cassandra-operator/cmd/operator
-	GO111MODULE=on KUBE_CONTEXT=ignore go test -run xxxxx $(testPkgs) # build the test code but don't run any tests yet
+	go build -o $(buildDir)/bin/cassandra-operator -v github.com/sky-uk/cassandra-operator/cassandra-operator/cmd/operator
+	KUBE_CONTEXT=ignore go test -run xxxxx $(testPkgs) # build the test code but don't run any tests yet
 
 go-install: go-build
 	@echo "== install"
@@ -116,7 +115,14 @@ deploy-operator:
 
 validate-licences:
 	@echo "== validate licences"
-	$(projectDir)/hack/check-licences.sh
+	set -e ;\
+	restricted=$$(paste -s -d ',' restricted-licences.txt) ;\
+	projects=$$(go list -m -f "{{.Dir}}" all) ;\
+	licence-compliance-checker -L error -E -r $$restricted \
+		-m github.com/sky-uk/cassandra-operator/cassandra-operator=BSD-3-Clause \
+		-m sigs.k8s.io/yaml=BSD-3-Clause \
+		-m github.com/hashicorp/golang-lru=MPL-2.0 \
+		$$projects ;\
 
 clean: common-docker-clean
 	@echo "== clean"
