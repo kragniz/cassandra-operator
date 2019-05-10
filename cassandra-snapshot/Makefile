@@ -50,11 +50,10 @@ validate-licences:
 	@echo "== validate licences"
 	set -e ;\
 	restricted=$$(paste -s -d ',' restricted-licences.txt) ;\
-	projects=$$(go list -m -f "{{.Dir}}" all) ;\
 	licence-compliance-checker -L error -E -r $$restricted \
 		-m github.com/sky-uk/cassandra-operator/cassandra-snapshot=BSD-3-Clause \
 		-m sigs.k8s.io/yaml=BSD-3-Clause \
-		$$projects ;\
+		--check-go-modules ;\
 
 vet:
 	@echo "== vet"
