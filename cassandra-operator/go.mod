@@ -52,6 +52,3 @@ require (
 replace k8s.io/client-go => k8s.io/client-go v11.0.0+incompatible
 
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190216013122-f05b8decd79c
-
-// XXX: added for testing, don't merge with this present
-replace github.com/sky-uk/licence-compliance-checker => github.com/kragniz/licence-compliance-checker v1.0.1-0.20190514150619-bdce557862df
