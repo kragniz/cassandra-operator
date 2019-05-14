@@ -17,6 +17,7 @@ require (
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/sirupsen/logrus v1.2.0
+	github.com/sky-uk/licence-compliance-checker v1.0.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
@@ -26,6 +27,7 @@ require (
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
 	google.golang.org/appengine v1.3.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
+	gopkg.in/src-d/go-license-detector.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	k8s.io/api v0.0.0-20190503110853-61630f889b3c
 	k8s.io/apimachinery v0.0.0-20190502092502-a44ef629a3c9
@@ -37,3 +39,6 @@ require (
 replace k8s.io/client-go => k8s.io/client-go v11.0.0+incompatible
 
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190216013122-f05b8decd79c
+
+// XXX: added for testing, don't merge with this present
+replace github.com/sky-uk/licence-compliance-checker => github.com/kragniz/licence-compliance-checker v1.0.1-0.20190514150619-bdce557862df

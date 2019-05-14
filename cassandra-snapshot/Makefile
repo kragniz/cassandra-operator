@@ -32,7 +32,9 @@ check: check-style validate-licences test prepare-deployment integration-test e2
 
 setup:
 	@echo "== setup"
-	GO111MODULE=off go get -v github.com/onsi/ginkgo/ginkgo && cd $$GOPATH/src/github.com/onsi/ginkgo && git checkout 'v1.6.0' && GO111MODULE=off go install github.com/onsi/ginkgo/ginkgo
+	go install \
+		github.com/sky-uk/licence-compliance-checker \
+		github.com/onsi/ginkgo/ginkgo
 
 go-build: ensure-build-dir-exists
 	@echo "== build"
