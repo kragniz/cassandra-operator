@@ -33,6 +33,13 @@ check-style: fmt vet lint
 
 check: check-style validate-licences test deploy-operator integration-test e2e-test
 
+ensure-go-modules:
+ifeq ('$(shell go env | grep -o "GOMOD.*")', 'GOMOD=""')
+	$(error "go modules must be enabled: export GO111MODULE=on, or run from outside $$GOPATH")
+else
+	@echo "go modules enabled"
+endif
+
 setup:
 	@echo "== setup"
 	go install \
@@ -41,7 +48,7 @@ setup:
 		golang.org/x/tools/cmd/goimports \
 		golang.org/x/lint/golint
 
-go-build: ensure-build-dir-exists
+go-build: ensure-build-dir-exists ensure-go-modules
 	@echo "== build"
 	go build -o $(buildDir)/bin/cassandra-operator -v github.com/sky-uk/cassandra-operator/cassandra-operator/cmd/operator
 	KUBE_CONTEXT=ignore go test -run xxxxx $(testPkgs) # build the test code but don't run any tests yet
