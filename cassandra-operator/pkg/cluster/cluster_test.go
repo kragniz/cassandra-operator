@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
+	v1alpha1helpers "github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/helpers"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/util/ptr"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/test"
 	"k8s.io/api/batch/v1beta1"
 	"k8s.io/api/core/v1"
@@ -268,7 +270,7 @@ var _ = Describe("cluster construction", func() {
 
 		Context("useEmptyDir is true", func() {
 			BeforeEach(func() {
-				clusterDef.Spec.UseEmptyDir = true
+				clusterDef.Spec.UseEmptyDir = ptr.Bool(true)
 			})
 
 			It("should accept a configuration with no pod storage", func() {
@@ -287,13 +289,13 @@ var _ = Describe("cluster construction", func() {
 				clusterDef.Spec.Pod.StorageSize = resource.Quantity{}
 				cluster, err := ACluster(clusterDef)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.definition.Spec.UseEmptyDir).To(BeTrue())
+				Expect(v1alpha1helpers.UseEmptyDir(cluster.definition)).To(BeTrue())
 			})
 		})
 
 		Context("useEmptyDir is false", func() {
 			BeforeEach(func() {
-				clusterDef.Spec.UseEmptyDir = false
+				clusterDef.Spec.UseEmptyDir = ptr.Bool(false)
 			})
 
 			It("should reject a configuration with no pod storage size property", func() {
@@ -521,7 +523,7 @@ var _ = Describe("creation of stateful sets", func() {
 
 	It("should mount an emptyDir into the main container if useEmptyDir is set", func() {
 		// given
-		clusterDef.Spec.UseEmptyDir = true
+		clusterDef.Spec.UseEmptyDir = ptr.Bool(true)
 		clusterDef.Spec.Pod.StorageSize = resource.MustParse("0")
 		cluster, err := ACluster(clusterDef)
 		Expect(err).ToNot(HaveOccurred())

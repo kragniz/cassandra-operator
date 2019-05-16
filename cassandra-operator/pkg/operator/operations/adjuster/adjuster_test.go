@@ -257,7 +257,7 @@ var _ = Describe("cluster events", func() {
 		})
 
 		It("should reject the change with an error message when UseEmptyDir is changed", func() {
-			newClusterSpec.UseEmptyDir = true
+			newClusterSpec.UseEmptyDir = ptr.Bool(true)
 			_, err := adjuster.ChangesForCluster(oldClusterSpec, newClusterSpec)
 
 			Expect(err).To(MatchError("changing useEmptyDir is forbidden. The useEmptyDir used will continue to be 'false'"))
