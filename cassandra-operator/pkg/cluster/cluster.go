@@ -38,9 +38,6 @@ const (
 	cassandraContainerName             = "cassandra"
 	cassandraBootstrapperContainerName = "cassandra-bootstrapper"
 
-	// DefaultCassandraBootstrapperImage is the name of the Docker image used to prepare the configuration for the Cassandra node before it can be started
-	DefaultCassandraBootstrapperImage = "skyuk/cassandra-bootstrapper:latest"
-
 	storageVolumeMountPath       = "/var/lib/cassandra"
 	configurationVolumeMountPath = "/etc/cassandra"
 	extraLibVolumeMountPath      = "/extra-lib"
@@ -98,11 +95,6 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 		cassandraImage = DefaultCassandraImage
 	}
 
-	bootstrapperImage := clusterDefinition.Spec.Pod.BootstrapperImage
-	if bootstrapperImage == "" {
-		bootstrapperImage = DefaultCassandraBootstrapperImage
-	}
-
 	if clusterDefinition.Spec.Snapshot != nil {
 		if clusterDefinition.Spec.Snapshot.Image == "" {
 			clusterDefinition.Spec.Snapshot.Image = DefaultCassandraSnapshotImage
@@ -132,7 +124,8 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 	}
 
 	cluster.definition = clusterDefinition.DeepCopy()
-	cluster.definition.Spec.Pod.BootstrapperImage = bootstrapperImage
+	bootstrapperImage := v1alpha1helpers.GetBootstrapperImage(cluster.definition)
+	cluster.definition.Spec.Pod.BootstrapperImage = &bootstrapperImage
 	cluster.definition.Spec.Pod.Image = cassandraImage
 	return nil
 }
@@ -738,7 +731,7 @@ func (c *Cluster) createCassandraBootstrapperContainer(rack *v1alpha1.Rack, cust
 	return v1.Container{
 		Name:         cassandraBootstrapperContainerName,
 		Env:          c.createEnvironmentVariableDefinition(rack),
-		Image:        c.definition.Spec.Pod.BootstrapperImage,
+		Image:        v1alpha1helpers.GetBootstrapperImage(c.definition),
 		Resources:    c.createResourceRequirements(),
 		VolumeMounts: mounts,
 	}

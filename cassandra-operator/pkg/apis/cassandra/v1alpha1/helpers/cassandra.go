@@ -11,3 +11,11 @@ func UseEmptyDir(c *v1alpha1.Cassandra) bool {
 	}
 	return false
 }
+
+// GetBootstrapperImage returns the bootstrapper image for a cluster
+func GetBootstrapperImage(c *v1alpha1.Cassandra) string {
+	if c.Spec.Pod.BootstrapperImage != nil {
+		return *c.Spec.Pod.BootstrapperImage
+	}
+	return v1alpha1.DefaultCassandraBootstrapperImage
+}
