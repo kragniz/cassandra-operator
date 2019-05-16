@@ -46,7 +46,8 @@ setup:
 		github.com/sky-uk/licence-compliance-checker \
 		github.com/onsi/ginkgo/ginkgo \
 		golang.org/x/tools/cmd/goimports \
-		golang.org/x/lint/golint
+		golang.org/x/lint/golint \
+		github.com/kubernetes-sigs/controller-tools/cmd/crd
 
 go-build: ensure-build-dir-exists ensure-go-modules
 	@echo "== build"

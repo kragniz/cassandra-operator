@@ -5,10 +5,6 @@ import (
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	// required for dep management
-	"k8s.io/apimachinery/pkg/api/resource"
-	_ "k8s.io/code-generator/cmd/client-gen/types"
 )
 
 const (
@@ -22,6 +18,7 @@ const (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Cassandra defines a Cassandra cluster
+// +resource/+kubebuilder:resource
 type Cassandra struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
