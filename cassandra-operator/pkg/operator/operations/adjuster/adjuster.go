@@ -191,7 +191,11 @@ func (r *Adjuster) ensureChangeIsAllowed(oldCluster, newCluster *v1alpha1.Cassan
 		return fmt.Errorf("changing image is forbidden. The image used will continue to be '%v'", currentImage)
 	}
 	if !reflect.DeepEqual(oldCluster.UseEmptyDir, newCluster.UseEmptyDir) {
-		return fmt.Errorf("changing useEmptyDir is forbidden. The useEmptyDir used will continue to be '%v'", oldCluster.UseEmptyDir)
+		useEmptyDir := false
+		if oldCluster.UseEmptyDir != nil {
+			useEmptyDir = *oldCluster.UseEmptyDir
+		}
+		return fmt.Errorf("changing useEmptyDir is forbidden. The useEmptyDir used will continue to be '%v'", useEmptyDir)
 	}
 
 	for _, matchedRack := range matchedRacks {
