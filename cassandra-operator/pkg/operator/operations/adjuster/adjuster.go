@@ -119,7 +119,7 @@ func New() (*Adjuster, error) {
 // be applied in order for the running cluster to be in the state matching newCluster.
 func (r *Adjuster) ChangesForCluster(oldCluster *v1alpha1.Cassandra, newCluster *v1alpha1.Cassandra) ([]ClusterChange, error) {
 	addedRacks, matchedRacks, deletedRacks := r.matchRacks(&oldCluster.Spec, &newCluster.Spec)
-	if err := r.ensureChangeIsAllowed(&oldCluster.Spec, &newCluster.Spec, matchedRacks); err != nil {
+	if err := r.ensureChangeIsAllowed(oldCluster, newCluster, matchedRacks); err != nil {
 		return nil, err
 	}
 
@@ -179,20 +179,17 @@ func (r *Adjuster) scaleDownPatchForRack(nodesToScaleDown int) string {
 	return fmt.Sprintf(scaleDownPatchTemplate, nodesToScaleDown)
 }
 
-func (r *Adjuster) ensureChangeIsAllowed(oldCluster, newCluster *v1alpha1.CassandraSpec, matchedRacks []matchedRack) error {
-	if oldCluster.GetDatacenter() != newCluster.GetDatacenter() {
-		return fmt.Errorf("changing dc is forbidden. The dc used will continue to be '%v'", oldCluster.GetDatacenter())
+func (r *Adjuster) ensureChangeIsAllowed(oldCluster, newCluster *v1alpha1.Cassandra, matchedRacks []matchedRack) error {
+	if oldCluster.Spec.GetDatacenter() != newCluster.Spec.GetDatacenter() {
+		return fmt.Errorf("changing dc is forbidden. The dc used will continue to be '%v'", oldCluster.Spec.GetDatacenter())
 	}
 
-	if !reflect.DeepEqual(oldCluster.Pod.Image, newCluster.Pod.Image) {
-		currentImage := oldCluster.Pod.Image
-		if currentImage == "" {
-			currentImage = cluster.DefaultCassandraImage
-		}
+	if !reflect.DeepEqual(oldCluster.Spec.Pod.Image, newCluster.Spec.Pod.Image) {
+		currentImage := v1alpha1helpers.GetCassandraImage(oldCluster)
 		return fmt.Errorf("changing image is forbidden. The image used will continue to be '%v'", currentImage)
 	}
-	if !reflect.DeepEqual(oldCluster.UseEmptyDir, newCluster.UseEmptyDir) {
-		return fmt.Errorf("changing useEmptyDir is forbidden. The useEmptyDir used will continue to be '%v'", oldCluster.UseEmptyDir)
+	if !reflect.DeepEqual(oldCluster.Spec.UseEmptyDir, newCluster.Spec.UseEmptyDir) {
+		return fmt.Errorf("changing useEmptyDir is forbidden. The useEmptyDir used will continue to be '%v'", oldCluster.Spec.UseEmptyDir)
 	}
 
 	for _, matchedRack := range matchedRacks {

@@ -20,6 +20,9 @@ const (
 
 	// DefaultCassandraBootstrapperImage is the name of the Docker image used to prepare the configuration for the Cassandra node before it can be started
 	DefaultCassandraBootstrapperImage = "skyuk/cassandra-bootstrapper:latest"
+
+	// DefaultCassandraImage is the name of the default Docker image used on Cassandra pods
+	DefaultCassandraImage = "cassandra:3.11"
 )
 
 // +genclient
@@ -63,7 +66,7 @@ type Pod struct {
 	// +optional
 	BootstrapperImage *string `json:"bootstrapperImage,omitempty"`
 	// +optional
-	Image       string            `json:"image"`
+	Image       *string           `json:"image"`
 	StorageSize resource.Quantity `json:"storageSize"`
 	Memory      resource.Quantity `json:"memory"`
 	CPU         resource.Quantity `json:"cpu"`

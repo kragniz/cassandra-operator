@@ -29,9 +29,6 @@ const (
 	RackLabel       = "rack"
 	customConfigDir = "/custom-config"
 
-	// DefaultCassandraImage is the name of the default Docker image used on Cassandra pods
-	DefaultCassandraImage = "cassandra:3.11"
-
 	// DefaultCassandraSnapshotImage is the name of the Docker image used to make and cleanup snapshots
 	DefaultCassandraSnapshotImage = "skyuk/cassandra-snapshot:latest"
 
@@ -90,11 +87,6 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 		return err
 	}
 
-	cassandraImage := clusterDefinition.Spec.Pod.Image
-	if cassandraImage == "" {
-		cassandraImage = DefaultCassandraImage
-	}
-
 	if clusterDefinition.Spec.Snapshot != nil {
 		if clusterDefinition.Spec.Snapshot.Image == "" {
 			clusterDefinition.Spec.Snapshot.Image = DefaultCassandraSnapshotImage
@@ -126,7 +118,9 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 	cluster.definition = clusterDefinition.DeepCopy()
 	bootstrapperImage := v1alpha1helpers.GetBootstrapperImage(cluster.definition)
 	cluster.definition.Spec.Pod.BootstrapperImage = &bootstrapperImage
-	cluster.definition.Spec.Pod.Image = cassandraImage
+
+	cassandraImage := v1alpha1helpers.GetCassandraImage(cluster.definition)
+	cluster.definition.Spec.Pod.Image = &cassandraImage
 	return nil
 }
 
@@ -490,7 +484,7 @@ func (c *Cluster) createCassandraContainer(rack *v1alpha1.Rack, customConfigMap 
 
 	return v1.Container{
 		Name:  cassandraContainerName,
-		Image: c.definition.Spec.Pod.Image,
+		Image: v1alpha1helpers.GetCassandraImage(c.definition),
 		Ports: []v1.ContainerPort{
 			{
 				Name:          "internode",
@@ -710,7 +704,7 @@ func (c *Cluster) customConfigMapVolumeName() string {
 func (c *Cluster) createInitConfigContainer() v1.Container {
 	return v1.Container{
 		Name:    "init-config",
-		Image:   c.definition.Spec.Pod.Image,
+		Image:   v1alpha1helpers.GetCassandraImage(c.definition),
 		Command: []string{"sh", "-c", "cp -vr /etc/cassandra/* /configuration"},
 		VolumeMounts: []v1.VolumeMount{
 			{Name: "configuration", MountPath: "/configuration"},

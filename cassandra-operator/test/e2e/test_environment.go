@@ -91,7 +91,7 @@ func init() {
 		CassandraLivenessProbeFailureThreshold = 3
 		CassandraReadinessProbeFailureThreshold = 3
 	} else {
-		CassandraImageName = cluster.DefaultCassandraImage
+		CassandraImageName = v1alpha1.DefaultCassandraImage
 		CassandraInitialDelay = 30
 		CassandraLivenessPeriod = 30
 		CassandraReadinessPeriod = 15
