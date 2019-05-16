@@ -36,8 +36,8 @@ type CassandraSpec struct {
 	Datacenter *string `json:"datacenter,omitempty"`
 	Racks      []Rack  `json:"racks"`
 	// +optional
-	UseEmptyDir bool `json:"useEmptyDir"`
-	Pod         Pod  `json:"pod"`
+	UseEmptyDir *bool `json:"useEmptyDir,omitempty"`
+	Pod         Pod   `json:"pod"`
 	// +optional
 	Snapshot *Snapshot `json:"snapshot,omitempty"`
 }

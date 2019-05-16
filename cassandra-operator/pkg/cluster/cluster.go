@@ -7,6 +7,7 @@ import (
 
 	"github.com/robfig/cron"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
+	v1alpha1helpers "github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/helpers"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/operator/hash"
 	appsv1 "k8s.io/api/apps/v1beta2"
 	batchv1 "k8s.io/api/batch/v1"
@@ -149,9 +150,9 @@ func validateRacks(clusterDefinition *v1alpha1.Cassandra) error {
 	for _, rack := range clusterDefinition.Spec.Racks {
 		if rack.Replicas < 1 {
 			return fmt.Errorf("invalid rack replicas value %d provided for Cassandra cluster definition: %s.%s", rack.Replicas, clusterDefinition.Namespace, clusterDefinition.Name)
-		} else if rack.StorageClass == "" && !clusterDefinition.Spec.UseEmptyDir {
+		} else if rack.StorageClass == "" && !v1alpha1helpers.UseEmptyDir(clusterDefinition) {
 			return fmt.Errorf("rack named '%s' with no storage class specified, either set useEmptyDir to true or specify storage class: %s.%s", rack.Name, clusterDefinition.Namespace, clusterDefinition.Name)
-		} else if rack.Zone == "" && !clusterDefinition.Spec.UseEmptyDir {
+		} else if rack.Zone == "" && !v1alpha1helpers.UseEmptyDir(clusterDefinition) {
 			return fmt.Errorf("rack named '%s' with no zone specified, either set useEmptyDir to true or specify zone: %s.%s", rack.Name, clusterDefinition.Namespace, clusterDefinition.Name)
 		}
 	}
@@ -163,11 +164,11 @@ func validatePodResources(clusterDefinition *v1alpha1.Cassandra) error {
 		return fmt.Errorf("no podMemory property provided for Cassandra cluster definition: %s.%s", clusterDefinition.Namespace, clusterDefinition.Name)
 	}
 
-	if clusterDefinition.Spec.UseEmptyDir && !clusterDefinition.Spec.Pod.StorageSize.IsZero() {
+	if v1alpha1helpers.UseEmptyDir(clusterDefinition) && !clusterDefinition.Spec.Pod.StorageSize.IsZero() {
 		return fmt.Errorf("podStorageSize property provided when useEmptyDir is true for Cassandra cluster definition: %s.%s", clusterDefinition.Namespace, clusterDefinition.Name)
 	}
 
-	if !clusterDefinition.Spec.UseEmptyDir && clusterDefinition.Spec.Pod.StorageSize.IsZero() {
+	if !v1alpha1helpers.UseEmptyDir(clusterDefinition) && clusterDefinition.Spec.Pod.StorageSize.IsZero() {
 		return fmt.Errorf("no podStorageSize property provided and useEmptyDir false for Cassandra cluster definition: %s.%s", clusterDefinition.Namespace, clusterDefinition.Name)
 	}
 	return nil
@@ -581,7 +582,7 @@ func (c *Cluster) createEnvironmentVariableDefinition(rack *v1alpha1.Rack) []v1.
 func (c *Cluster) createCassandraDataPersistentVolumeClaimForRack(rack *v1alpha1.Rack) []v1.PersistentVolumeClaim {
 	var persistentVolumeClaim []v1.PersistentVolumeClaim
 
-	if !c.definition.Spec.UseEmptyDir {
+	if !v1alpha1helpers.UseEmptyDir(c.definition) {
 		persistentVolumeClaim = append(persistentVolumeClaim, v1.PersistentVolumeClaim{
 			ObjectMeta: c.objectMetadata(c.definition.StorageVolumeName(), RackLabel, rack.Name, "app", c.definition.Name),
 			Spec: v1.PersistentVolumeClaimSpec{
@@ -626,7 +627,7 @@ func (c *Cluster) createPodVolumes(customConfigMap *v1.ConfigMap) []v1.Volume {
 		volumes = append(volumes, c.createConfigMapVolume(customConfigMap))
 	}
 
-	if c.definition.Spec.UseEmptyDir {
+	if v1alpha1helpers.UseEmptyDir(c.definition) {
 		volumes = append(volumes, emptyDir(c.definition.StorageVolumeName()))
 	}
 
