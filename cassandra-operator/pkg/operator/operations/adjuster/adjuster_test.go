@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
-	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/util/ptr"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -67,7 +66,7 @@ var _ = Describe("cluster events", func() {
 				Datacenter: ptr.String("ADatacenter"),
 				Racks:      []v1alpha1.Rack{{Name: "a", Replicas: 1, StorageClass: "some-storage", Zone: "some-zone"}},
 				Pod: v1alpha1.Pod{
-					Image:          "anImage",
+					Image:          ptr.String("anImage"),
 					Memory:         resource.MustParse("2Gi"),
 					CPU:            resource.MustParse("100m"),
 					StorageSize:    resource.MustParse("1Gi"),
@@ -81,7 +80,7 @@ var _ = Describe("cluster events", func() {
 				Datacenter: ptr.String("ADatacenter"),
 				Racks:      []v1alpha1.Rack{{Name: "a", Replicas: 1, StorageClass: "some-storage", Zone: "some-zone"}},
 				Pod: v1alpha1.Pod{
-					Image:          "anImage",
+					Image:          ptr.String("anImage"),
 					Memory:         resource.MustParse("2Gi"),
 					CPU:            resource.MustParse("100m"),
 					StorageSize:    resource.MustParse("1Gi"),
@@ -245,19 +244,19 @@ var _ = Describe("cluster events", func() {
 		})
 
 		It("should reject the change with an error message when Image is changed", func() {
-			newCluster.Spec.Pod.Image = "other-image"
+			newCluster.Spec.Pod.Image = ptr.String("other-image")
 			_, err := adjuster.ChangesForCluster(oldCluster, newCluster)
 
 			Expect(err).To(MatchError("changing image is forbidden. The image used will continue to be 'anImage'"))
 		})
 
 		It("should report that the default image will continue to be used if an image was not previously specified", func() {
-			oldCluster.Spec.Pod.Image = ""
-			newCluster.Spec.Pod.Image = "other-image"
+			oldCluster.Spec.Pod.Image = nil
+			newCluster.Spec.Pod.Image = ptr.String("other-image")
 
 			_, err := adjuster.ChangesForCluster(oldCluster, newCluster)
 
-			Expect(err).To(MatchError(fmt.Sprintf("changing image is forbidden. The image used will continue to be '%s'", cluster.DefaultCassandraImage)))
+			Expect(err).To(MatchError(fmt.Sprintf("changing image is forbidden. The image used will continue to be '%s'", v1alpha1.DefaultCassandraImage)))
 		})
 
 		It("should reject the change with an error message when UseEmptyDir is changed", func() {

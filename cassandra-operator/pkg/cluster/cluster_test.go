@@ -79,7 +79,7 @@ var _ = Describe("cluster construction", func() {
 		})
 
 		It("should use the specified version of the cassandra image if one is given", func() {
-			clusterDef.Spec.Pod.Image = "somerepo/someimage:v1.0"
+			clusterDef.Spec.Pod.Image = ptr.String("somerepo/someimage:v1.0")
 			cluster, err := ACluster(clusterDef)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cluster.definition.Spec.Pod.Image).To(Equal("somerepo/someimage:v1.0"))
