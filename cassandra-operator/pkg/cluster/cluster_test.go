@@ -88,14 +88,14 @@ var _ = Describe("cluster construction", func() {
 		It("should use the latest version of the cassandra bootstrapper image if one is not supplied for the cluster", func() {
 			cluster, err := ACluster(clusterDef)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.definition.Spec.Pod.BootstrapperImage).To(Equal("skyuk/cassandra-bootstrapper:latest"))
+			Expect(*cluster.definition.Spec.Pod.BootstrapperImage).To(Equal("skyuk/cassandra-bootstrapper:latest"))
 		})
 
 		It("should use the specified version of the cassandra bootstrapper image if one is given", func() {
-			clusterDef.Spec.Pod.BootstrapperImage = "somerepo/some-bootstrapper-image:v1.0"
+			clusterDef.Spec.Pod.BootstrapperImage = ptr.String("somerepo/some-bootstrapper-image:v1.0")
 			cluster, err := ACluster(clusterDef)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.definition.Spec.Pod.BootstrapperImage).To(Equal("somerepo/some-bootstrapper-image:v1.0"))
+			Expect(*cluster.definition.Spec.Pod.BootstrapperImage).To(Equal("somerepo/some-bootstrapper-image:v1.0"))
 		})
 
 		It("should set the default liveness probe values if it is not configured for the cluster", func() {
@@ -462,7 +462,7 @@ var _ = Describe("creation of stateful sets", func() {
 	})
 
 	It("should create the bootstrapper init container with the specified image if one is given", func() {
-		clusterDef.Spec.Pod.BootstrapperImage = "somerepo/abootstapperimage:v1"
+		clusterDef.Spec.Pod.BootstrapperImage = ptr.String("somerepo/abootstapperimage:v1")
 		cluster, err := ACluster(clusterDef)
 		Expect(err).NotTo(HaveOccurred())
 
