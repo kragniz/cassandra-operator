@@ -66,7 +66,7 @@ type Pod struct {
 	// +optional
 	BootstrapperImage *string `json:"bootstrapperImage,omitempty"`
 	// +optional
-	Image       *string           `json:"image"`
+	Image       *string           `json:"image,omitempty"`
 	StorageSize resource.Quantity `json:"storageSize"`
 	Memory      resource.Quantity `json:"memory"`
 	CPU         resource.Quantity `json:"cpu"`
