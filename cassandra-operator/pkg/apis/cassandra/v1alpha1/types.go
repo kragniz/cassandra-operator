@@ -18,11 +18,14 @@ const (
 	// DefaultDCName is the default data center name which each Cassandra pod belongs to
 	DefaultDCName = "dc1"
 
+	// DefaultCassandraImage is the name of the default Docker image used on Cassandra pods
+	DefaultCassandraImage = "cassandra:3.11"
+
 	// DefaultCassandraBootstrapperImage is the name of the Docker image used to prepare the configuration for the Cassandra node before it can be started
 	DefaultCassandraBootstrapperImage = "skyuk/cassandra-bootstrapper:latest"
 
-	// DefaultCassandraImage is the name of the default Docker image used on Cassandra pods
-	DefaultCassandraImage = "cassandra:3.11"
+	// DefaultCassandraSnapshotImage is the name of the Docker image used to make and cleanup snapshots
+	DefaultCassandraSnapshotImage = "skyuk/cassandra-snapshot:latest"
 )
 
 // +genclient
@@ -100,7 +103,7 @@ type Rack struct {
 // Snapshot defines the snapshot creation and deletion configuration
 type Snapshot struct {
 	// +optional
-	Image string `json:"image"`
+	Image *string `json:"image,omitempty"`
 	// Schedule follows the cron format, see https://en.wikipedia.org/wiki/Cron
 	Schedule string `json:"schedule"`
 	// +optional

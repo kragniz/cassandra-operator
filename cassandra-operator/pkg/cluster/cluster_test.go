@@ -75,14 +75,14 @@ var _ = Describe("cluster construction", func() {
 		It("should use the 3.11 version of the apache cassandra image if one is not supplied for the cluster", func() {
 			cluster, err := ACluster(clusterDef)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.definition.Spec.Pod.Image).To(Equal("cassandra:3.11"))
+			Expect(*cluster.definition.Spec.Pod.Image).To(Equal("cassandra:3.11"))
 		})
 
 		It("should use the specified version of the cassandra image if one is given", func() {
 			clusterDef.Spec.Pod.Image = ptr.String("somerepo/someimage:v1.0")
 			cluster, err := ACluster(clusterDef)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.definition.Spec.Pod.Image).To(Equal("somerepo/someimage:v1.0"))
+			Expect(*cluster.definition.Spec.Pod.Image).To(Equal("somerepo/someimage:v1.0"))
 		})
 
 		It("should use the latest version of the cassandra bootstrapper image if one is not supplied for the cluster", func() {
@@ -363,14 +363,15 @@ var _ = Describe("cluster construction", func() {
 			It("should use the latest version of the cassandra snapshot image if one is not supplied for the cluster", func() {
 				cluster, err := ACluster(clusterDef)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.definition.Spec.Snapshot.Image).To(Equal("skyuk/cassandra-snapshot:latest"))
+				Expect(*cluster.definition.Spec.Snapshot.Image).To(Equal("skyuk/cassandra-snapshot:latest"))
 			})
 
 			It("should use the specified version of the cassandra snapshot image if one is given", func() {
-				clusterDef.Spec.Snapshot.Image = "somerepo/some-snapshot-image:v1.0"
+				img := "somerepo/some-snapshot-image:v1.0"
+				clusterDef.Spec.Snapshot.Image = &img
 				cluster, err := ACluster(clusterDef)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.definition.Spec.Snapshot.Image).To(Equal("somerepo/some-snapshot-image:v1.0"))
+				Expect(*cluster.definition.Spec.Snapshot.Image).To(Equal("somerepo/some-snapshot-image:v1.0"))
 			})
 
 		})
@@ -448,7 +449,7 @@ var _ = Describe("creation of stateful sets", func() {
 		Expect(statefulSet.Spec.Template.Spec.InitContainers).To(HaveLen(2))
 
 		Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Name).To(Equal("init-config"))
-		Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal(cluster.definition.Spec.Pod.Image))
+		Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal(*cluster.definition.Spec.Pod.Image))
 		Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Command).To(Equal([]string{"sh", "-c", "cp -vr /etc/cassandra/* /configuration"}))
 		Expect(*statefulSet.Spec.Template.Spec.InitContainers[0].Resources.Requests.Memory()).To(Equal(clusterDef.Spec.Pod.Memory))
 		Expect(*statefulSet.Spec.Template.Spec.InitContainers[0].Resources.Requests.Cpu()).To(Equal(clusterDef.Spec.Pod.CPU))
@@ -841,7 +842,8 @@ var _ = Describe("creation of snapshot job", func() {
 	})
 
 	It("should create a cronjob which pod is using the specified snapshot image", func() {
-		clusterDef.Spec.Snapshot.Image = "somerepo/snapshot:v1"
+		img := "somerepo/snapshot:v1"
+		clusterDef.Spec.Snapshot.Image = &img
 		cluster, err := ACluster(clusterDef)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -980,7 +982,8 @@ var _ = Describe("creation of snapshot cleanup job", func() {
 	})
 
 	It("should create a cronjob which pod is using the specified snapshot image", func() {
-		clusterDef.Spec.Snapshot.Image = "somerepo/snapshot:v1"
+		img := "somerepo/snapshot:v1"
+		clusterDef.Spec.Snapshot.Image = &img
 		cluster, err := ACluster(clusterDef)
 		Expect(err).NotTo(HaveOccurred())
 

@@ -29,9 +29,6 @@ const (
 	RackLabel       = "rack"
 	customConfigDir = "/custom-config"
 
-	// DefaultCassandraSnapshotImage is the name of the Docker image used to make and cleanup snapshots
-	DefaultCassandraSnapshotImage = "skyuk/cassandra-snapshot:latest"
-
 	cassandraContainerName             = "cassandra"
 	cassandraBootstrapperContainerName = "cassandra-bootstrapper"
 
@@ -87,12 +84,6 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 		return err
 	}
 
-	if clusterDefinition.Spec.Snapshot != nil {
-		if clusterDefinition.Spec.Snapshot.Image == "" {
-			clusterDefinition.Spec.Snapshot.Image = DefaultCassandraSnapshotImage
-		}
-	}
-
 	if clusterDefinition.Spec.Pod.LivenessProbe == nil {
 		clusterDefinition.Spec.Pod.LivenessProbe = defaultLivenessProbe.DeepCopy()
 	} else {
@@ -121,6 +112,11 @@ func CopyInto(cluster *Cluster, clusterDefinition *v1alpha1.Cassandra) error {
 
 	cassandraImage := v1alpha1helpers.GetCassandraImage(cluster.definition)
 	cluster.definition.Spec.Pod.Image = &cassandraImage
+
+	if cluster.definition.Spec.Snapshot != nil {
+		snapshotImage := v1alpha1helpers.GetSnapshopImage(cluster.definition)
+		cluster.definition.Spec.Snapshot.Image = &snapshotImage
+	}
 	return nil
 }
 
@@ -402,7 +398,7 @@ func (c *Cluster) CreateSnapshotContainer(snapshot *v1alpha1.Snapshot) *v1.Conta
 
 	return &v1.Container{
 		Name:    c.definition.SnapshotJobName(),
-		Image:   snapshot.Image,
+		Image:   v1alpha1helpers.GetSnapshopImage(c.definition),
 		Command: backupCommand,
 	}
 }
@@ -439,7 +435,7 @@ func (c *Cluster) CreateSnapshotCleanupContainer(snapshot *v1alpha1.Snapshot) *v
 
 	return &v1.Container{
 		Name:    c.definition.SnapshotCleanupJobName(),
-		Image:   snapshot.Image,
+		Image:   v1alpha1helpers.GetSnapshopImage(c.definition),
 		Command: cleanupCommand,
 	}
 }

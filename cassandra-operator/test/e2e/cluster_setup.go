@@ -57,7 +57,7 @@ func Rack(rackName string, replicas int32) v1alpha1.Rack {
 
 func SnapshotSchedule(cron string) *v1alpha1.Snapshot {
 	return &v1alpha1.Snapshot{
-		Image:    CassandraSnapshotImageName,
+		Image:    &CassandraSnapshotImageName,
 		Schedule: cron,
 	}
 }
