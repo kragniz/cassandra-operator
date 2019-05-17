@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := travis
-.PHONY: travis clean install check build fmt vet lint validate-licences test e2e-te setup go-build go-install docker-image push-image release check-style
+.PHONY: travis clean install check build fmt vet lint validate-licences test e2e-te setup go-build go-install docker-image push-image release check-style validate-crds generate-crds
 
 # Default context is running locally against a dind cluster
 KUBE_CONTEXT ?= dind
@@ -31,7 +31,7 @@ install: build push-image
 
 check-style: fmt vet lint
 
-check: check-style validate-licences test deploy-operator integration-test e2e-test
+check: check-style validate-licences validate-crds test deploy-operator integration-test e2e-test
 
 ensure-go-modules:
 ifeq ('$(shell go env | grep -o "GOMOD.*")', 'GOMOD=""')
@@ -46,7 +46,8 @@ setup:
 		github.com/sky-uk/licence-compliance-checker \
 		github.com/onsi/ginkgo/ginkgo \
 		golang.org/x/tools/cmd/goimports \
-		golang.org/x/lint/golint
+		golang.org/x/lint/golint \
+		sigs.k8s.io/controller-tools/cmd/controller-gen
 
 go-build: ensure-build-dir-exists ensure-go-modules
 	@echo "== build"
@@ -119,7 +120,7 @@ docker-image: go-build common-docker-build
 
 push-image: docker-image common-docker-push
 
-deploy-operator:
+deploy-operator: generate-crds
 	@echo "== deploy-operator"
 	IMAGE=$(IMAGE_TO_DEPLOY) CONTEXT=$(KUBE_CONTEXT) NAMESPACE=$(NAMESPACE) INGRESS_HOST=$(NAMESPACE).cassandra-operator.$(DOMAIN) $(projectDir)/deploy.sh
 
@@ -141,5 +142,13 @@ clean: common-docker-clean
 generate-types:
 	@echo "== generate-types"
 	$(projectDir)/hack/update-codegen.sh
+
+generate-crds: setup
+	@echo "== generate-crds"
+	$(projectDir)/hack/update-crds.sh
+
+validate-crds: setup
+	@echo "== validate-crds"
+	$(projectDir)/hack/verify-crds.sh
 
 release: common-docker-release
