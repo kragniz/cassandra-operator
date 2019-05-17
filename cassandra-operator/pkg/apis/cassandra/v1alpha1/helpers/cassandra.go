@@ -27,3 +27,10 @@ func GetBootstrapperImage(c *v1alpha1.Cassandra) string {
 	}
 	return v1alpha1.DefaultCassandraBootstrapperImage
 }
+
+func GetDatacenter(c *v1alpha1.Cassandra) string {
+	if c.Spec.Datacenter == nil {
+		return v1alpha1.DefaultDCName
+	}
+	return *c.Spec.Datacenter
+}

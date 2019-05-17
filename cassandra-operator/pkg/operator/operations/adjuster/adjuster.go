@@ -180,8 +180,8 @@ func (r *Adjuster) scaleDownPatchForRack(nodesToScaleDown int) string {
 }
 
 func (r *Adjuster) ensureChangeIsAllowed(oldCluster, newCluster *v1alpha1.Cassandra, matchedRacks []matchedRack) error {
-	if oldCluster.Spec.GetDatacenter() != newCluster.Spec.GetDatacenter() {
-		return fmt.Errorf("changing dc is forbidden. The dc used will continue to be '%v'", oldCluster.Spec.GetDatacenter())
+	if v1alpha1helpers.GetDatacenter(oldCluster) != v1alpha1helpers.GetDatacenter(newCluster) {
+		return fmt.Errorf("changing dc is forbidden. The dc used will continue to be '%v'", v1alpha1helpers.GetDatacenter(oldCluster))
 	}
 
 	if !reflect.DeepEqual(oldCluster.Spec.Pod.Image, newCluster.Spec.Pod.Image) {

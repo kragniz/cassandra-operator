@@ -543,7 +543,7 @@ func (c *Cluster) createEnvironmentVariableDefinition(rack *v1alpha1.Rack) []v1.
 		},
 		{
 			Name:  "CLUSTER_DATA_CENTER",
-			Value: c.definition.Spec.GetDatacenter(),
+			Value: v1alpha1helpers.GetDatacenter(c.definition),
 		},
 		{
 			Name: "NODE_LISTEN_ADDRESS",

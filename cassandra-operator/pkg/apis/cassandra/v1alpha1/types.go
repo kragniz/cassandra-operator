@@ -162,14 +162,6 @@ func (c *Cassandra) CustomConfigMapName() string {
 	return fmt.Sprintf("%s-config", c.Name)
 }
 
-// TODO: Move this to Cassandra top-level object
-func (c *CassandraSpec) GetDatacenter() string {
-	if c.Datacenter == nil {
-		return DefaultDCName
-	}
-	return *c.Datacenter
-}
-
 // SnapshotPropertiesUpdated returns false when snapshot1 and snapshot2 have the same properties disregarding retention policy
 func SnapshotPropertiesUpdated(snapshot1 *Snapshot, snapshot2 *Snapshot) bool {
 	return snapshot1.Schedule != snapshot2.Schedule ||
