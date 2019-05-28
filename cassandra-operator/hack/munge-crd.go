@@ -1,23 +1,37 @@
 package main
 
+/*
+This script updates a CRD yaml file to work around limitations in kubernetes
+1.10. It should not be required if targeting a version equal to or higher than
+1.11.
+*/
+
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
 	"sigs.k8s.io/yaml"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 func main() {
-	bytes, err := ioutil.ReadFile("kubernetes-resources/cassandra-operator-crd.yml")
+	if len(os.Args) == 1 {
+		log.Fatal("usage: go run munge-crd.go path/to/yaml-file.yml")
+	}
+
+	path := os.Args[1]
+
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("err: %v\n", err)
 	}
 
 	var crd apiextensionsv1beta1.CustomResourceDefinition
 	err = yaml.Unmarshal(bytes, &crd)
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("err: %v\n", err)
 	}
 
 	crd.Spec.Scope = "Namespaced"
@@ -36,8 +50,7 @@ func main() {
 
 	y, err := yaml.Marshal(crd)
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
+		log.Fatalf("err: %v\n", err)
 	}
 	fmt.Println(string(y))
 }
