@@ -40,7 +40,7 @@ else
 	@echo "go modules enabled"
 endif
 
-setup:
+setup: ensure-go-modules
 	@echo "== setup"
 	go install \
 		github.com/sky-uk/licence-compliance-checker \
