@@ -1,0 +1,19 @@
+apiVersion: core.sky.uk/v1alpha1
+kind: Cassandra
+metadata:
+  name: invalidfieldcluster
+spec:
+  pod:
+    image: "cassandra:3.11"
+    cpu: 1m
+    memory: 1Gi
+    storageSize: 100Mi
+  racks:
+  - name: a
+    replicas: "two"
+    storageClass: standard-zone-a
+    zone: eu-west-1a
+  - name: b
+    replicas: 2
+    storageClass: standard-zone-b
+    zone: eu-west-1b
