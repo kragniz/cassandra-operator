@@ -28,6 +28,7 @@ require (
 	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/src-d/go-license-detector.v2 v2.0.1 // indirect
 	k8s.io/api v0.0.0-20190503110853-61630f889b3c
+	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
 	k8s.io/apimachinery v0.0.0-20190502092502-a44ef629a3c9
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/code-generator v0.0.0-20190311093542-50b561225d70
@@ -35,6 +36,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30 // indirect
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 // indirect
 	sigs.k8s.io/controller-tools v0.2.0-beta.0
+	sigs.k8s.io/yaml v1.1.0
 )
 
 replace k8s.io/client-go => k8s.io/client-go v11.0.0+incompatible
