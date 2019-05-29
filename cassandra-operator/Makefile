@@ -120,7 +120,7 @@ docker-image: go-build common-docker-build
 
 push-image: docker-image common-docker-push
 
-deploy-operator: generate-crds
+deploy-operator:
 	@echo "== deploy-operator"
 	IMAGE=$(IMAGE_TO_DEPLOY) CONTEXT=$(KUBE_CONTEXT) NAMESPACE=$(NAMESPACE) INGRESS_HOST=$(NAMESPACE).cassandra-operator.$(DOMAIN) $(projectDir)/deploy.sh
 
