@@ -29,7 +29,7 @@ install: build push-image
 check-style:
 	@echo "== check-style not implemented"
 
-check: dgoss
+check: dgoss e2e-test
 
 setup:
 	@echo "== setup"
