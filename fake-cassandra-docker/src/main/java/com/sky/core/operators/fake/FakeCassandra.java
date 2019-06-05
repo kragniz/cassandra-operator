@@ -109,8 +109,11 @@ class FakeJolokiaServer extends NanoHTTPD {
 
     private static final Set<String> PERMITTED_PATHS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/localhost",
-            "/jolokia/read/org.apache.cassandra.db:type=StorageService/LiveNodes,UnreachableNodes,JoiningNodes,LeavingNodes,MovingNodes"
-    )));
+            "/jolokia/read/org.apache.cassandra.db:type=StorageService/LiveNodes",
+            "/jolokia/read/org.apache.cassandra.db:type=StorageService/UnreachableNodes",
+            "/jolokia/read/org.apache.cassandra.db:type=StorageService/JoiningNodes",
+            "/jolokia/read/org.apache.cassandra.db:type=StorageService/LeavingNodes",
+            "/jolokia/read/org.apache.cassandra.db:type=StorageService/MovingNodes")));
 
     public FakeJolokiaServer() {
         super(7777);
@@ -121,7 +124,7 @@ class FakeJolokiaServer extends NanoHTTPD {
         if (session.getMethod() == Method.POST) {
             return newFixedLengthResponse(Response.Status.FORBIDDEN, "application/text", "HTTP method post is not allowed according to the installed security policy\",\"status\":403");
         } else if(PERMITTED_PATHS.contains(session.getUri())) {
-            return newFixedLengthResponse("status\":200");
+            return newFixedLengthResponse("{\"status\":200}");
         } else {
             return newFixedLengthResponse("status\":403");
         }
