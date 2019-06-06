@@ -33,15 +33,24 @@ func init() {
 	}
 }
 
+var nodeListenAddress = "192.0.2.100"
+
 func TestAll(t *testing.T) {
 	BeforeSuite(func() {
 		var err error
-		command := exec.Command("docker", "run", "--rm", "--publish=7777:7777", fakeCassandraImage)
+		command := exec.Command(
+			"docker",
+			"run",
+			"--rm",
+			"--env=NODE_LISTEN_ADDRESS="+nodeListenAddress,
+			"--publish=7777:7777",
+			fakeCassandraImage,
+		)
 		session, err = Start(command, GinkgoWriter, GinkgoWriter)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(session.Out, "5s").Should(Say("Starting fake Jolokia server"))
 		getRequest := func() error {
-			response, err := http.Get("http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/localhost")
+			response, err := http.Get("http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/" + nodeListenAddress)
 			if err != nil {
 				return err
 			}
@@ -70,7 +79,9 @@ var _ = Context("Cassandra Docker container", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterStatus).ShouldNot(BeNil())
-		Expect(clusterStatus.NodeStatus("localhost")).ShouldNot(BeNil())
+		nodeStatus := clusterStatus.NodeStatus(nodeListenAddress)
+		Expect(nodeStatus).ShouldNot(BeNil())
+		Expect(nodeStatus.IsUpAndNormal()).Should(BeTrue())
 	})
 })
 
