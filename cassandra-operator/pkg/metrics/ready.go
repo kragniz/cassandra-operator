@@ -43,14 +43,13 @@ func (n *Nodetool) IsNodeReady(host string) (bool, error) {
 	gatherer := NewGatherer(n.urlProvider, &Config{
 		RequestTimeout: 20 * time.Second,
 	})
-	status, err := gatherer.GatherMetricsFor(n.cluster)
+	clusterStatus, err := gatherer.GatherMetricsFor(n.cluster)
 	if err != nil {
 		return false, err
 	}
-	statusMap := transformClusterStatus(status)
-	hostInfo, found := statusMap[host]
-	if !found {
+	nodeStatus := clusterStatus.NodeStatus(host)
+	if nodeStatus == nil {
 		return false, nil
 	}
-	return hostInfo.IsUpAndNormal(), nil
+	return nodeStatus.IsUpAndNormal(), nil
 }
