@@ -39,6 +39,11 @@ type clusterStatus struct {
 	movingNodes      []string
 }
 
+// NodeStatus returns the nodeStatus for the supplied host, or nil.
+func (cs *clusterStatus) NodeStatus(node string) *nodeStatus {
+	return transformClusterStatus(cs)[node]
+}
+
 // jolokiaRequest represents the request field in the jolokia response
 type jolokiaRequest struct {
 	Mbean     string
