@@ -2,24 +2,25 @@ package metrics
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
-
-	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
-	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
-	"github.com/sky-uk/cassandra-operator/cassandra-operator/test/stub"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
+	metricstesting "github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/metrics/testing"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/test/stub"
 )
 
 var _ = Describe("Cluster Metrics", func() {
 	var (
-		jolokiaURLProvider *stubbedJolokiaURLProvider
+		jolokiaURLProvider *metricstesting.StubbedJolokiaURLProvider
 		metricsGatherer    Gatherer
 		cluster            *cluster.Cluster
 	)
@@ -35,7 +36,7 @@ var _ = Describe("Cluster Metrics", func() {
 		jolokia.returnsRackForNode("racka", "172.16.46.58")
 		jolokia.returnsRackForNode("racka", "172.16.101.30")
 
-		jolokiaURLProvider = &stubbedJolokiaURLProvider{serverURL}
+		jolokiaURLProvider = &metricstesting.StubbedJolokiaURLProvider{BaseURL: serverURL}
 		metricsGatherer = NewGatherer(jolokiaURLProvider, &Config{1 * time.Second})
 
 		cluster = aCluster("testcluster", "test")
@@ -104,7 +105,7 @@ var _ = Describe("Cluster Metrics", func() {
 
 		It("returns an error when jolokia is not available", func() {
 			// given
-			jolokiaURLProvider.jolokiaIsUnavailable()
+			jolokiaURLProvider.JolokiaIsUnavailable()
 
 			// when
 			_, err := metricsGatherer.GatherMetricsFor(cluster)
@@ -360,12 +361,12 @@ func (jh *jolokiaHandler) returnsRackForNode(rack string, nodeIP string) {
 	jh.responsePrimers[fmt.Sprintf("getRack/%s", nodeIP)] = jolokiaResponsePrimer{
 		response: fmt.Sprintf(`{
   "request": {
-    "mbean": "org.apache.cassandra.db:type=EndpointSnitchInfo",
-    "arguments": [
-      "%s"
-    ],
-    "type": "exec",
-    "operation": "getRack"
+	"mbean": "org.apache.cassandra.db:type=EndpointSnitchInfo",
+	"arguments": [
+	  "%s"
+	],
+	"type": "exec",
+	"operation": "getRack"
   },
   "value": "%s",
   "timestamp": 1525190806,
@@ -373,18 +374,6 @@ func (jh *jolokiaHandler) returnsRackForNode(rack string, nodeIP string) {
 }`, nodeIP, rack),
 		statusCode: 200,
 	}
-}
-
-type stubbedJolokiaURLProvider struct {
-	baseURL string
-}
-
-func (p *stubbedJolokiaURLProvider) URLFor(cluster *cluster.Cluster) string {
-	return p.baseURL
-}
-
-func (p *stubbedJolokiaURLProvider) jolokiaIsUnavailable() {
-	p.baseURL = "localhost:9999"
 }
 
 func (jh *jolokiaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

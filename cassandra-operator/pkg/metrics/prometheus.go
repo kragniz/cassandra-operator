@@ -2,18 +2,17 @@ package metrics
 
 import (
 	"fmt"
-	"sync"
-
-	v1 "k8s.io/api/core/v1"
-
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
 )
 
 type clusterMetrics struct {

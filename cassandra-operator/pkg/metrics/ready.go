@@ -22,13 +22,13 @@ func (l *staticURLProvider) URLFor(*cluster.Cluster) string {
 // as a light weight library.
 type Nodetool struct {
 	cluster     *cluster.Cluster
-	urlProvider jolokiaURLProvider
+	urlProvider JolokiaURLProvider
 }
 
 // NewNodetool creates a NodeTool
 // urlProvider is optional
 // if ommitted a default will be used
-func NewNodetool(cluster *cluster.Cluster, urlProvider jolokiaURLProvider) *Nodetool {
+func NewNodetool(cluster *cluster.Cluster, urlProvider JolokiaURLProvider) *Nodetool {
 	if urlProvider == nil {
 		urlProvider = &staticURLProvider{url: defaultLocalURL}
 	}

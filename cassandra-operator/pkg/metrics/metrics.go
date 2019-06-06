@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
 	"time"
 
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
@@ -21,12 +20,13 @@ type Config struct {
 	RequestTimeout time.Duration
 }
 
-type jolokiaURLProvider interface {
+// JolokiaURLProvider provides a Jolokia API URL for a Cassandra cluster
+type JolokiaURLProvider interface {
 	URLFor(*cluster.Cluster) string
 }
 
 type jolokiaGatherer struct {
-	jolokiaURLProvider jolokiaURLProvider
+	jolokiaURLProvider JolokiaURLProvider
 	httpclient         *http.Client
 }
 
@@ -37,6 +37,11 @@ type clusterStatus struct {
 	joiningNodes     []string
 	leavingNodes     []string
 	movingNodes      []string
+}
+
+// NodeStatus returns the nodeStatus for the supplied host, or nil.
+func (cs *clusterStatus) NodeStatus(node string) *nodeStatus {
+	return transformClusterStatus(cs)[node]
 }
 
 // jolokiaRequest represents the request field in the jolokia response
@@ -75,7 +80,7 @@ type singleValueJolokiaResponse struct {
 }
 
 // NewGatherer creates a new instance of the Gatherer
-func NewGatherer(jolokiaURLProvider jolokiaURLProvider, config *Config) Gatherer {
+func NewGatherer(jolokiaURLProvider JolokiaURLProvider, config *Config) Gatherer {
 	return &jolokiaGatherer{
 		jolokiaURLProvider: jolokiaURLProvider,
 		httpclient:         &http.Client{Timeout: config.RequestTimeout},
