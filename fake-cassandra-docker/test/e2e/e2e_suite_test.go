@@ -40,14 +40,14 @@ func TestAll(t *testing.T) {
 		session, err = Start(command, GinkgoWriter, GinkgoWriter)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(session.Out, "5s").Should(Say("Starting fake Jolokia server"))
-		headRequest := func() error {
+		getRequest := func() error {
 			response, err := http.Get("http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/localhost")
 			if err != nil {
 				return err
 			}
 			return response.Body.Close()
 		}
-		Eventually(headRequest).Should(Succeed())
+		Eventually(getRequest).Should(Succeed())
 	})
 
 	AfterSuite(func() {
