@@ -61,6 +61,7 @@ var _ = Context("Cassandra Docker container", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterStatus).ShouldNot(BeNil())
+		Expect(clusterStatus.NodeStatus("localhost")).ShouldNot(BeNil())
 	})
 })
 
