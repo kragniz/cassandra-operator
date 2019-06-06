@@ -21,7 +21,7 @@ http:
   "http://localhost:7777/jolokia/read/java.lang:type=Memory/HeapMemoryUsage":
     status: 200
     body: ["status\":403"]
-  "http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/localhost":
+  "http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/192.0.2.100":
     status: 200
     body: ['status":200']
   "http://localhost:7777/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getDatacenter/localhost":

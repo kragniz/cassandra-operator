@@ -106,13 +106,14 @@ class FakeMetricsServer extends NanoHTTPD {
 }
 
 class FakeJolokiaServer extends NanoHTTPD {
+    private static String nodeListenAddress = System.getenv("NODE_LISTEN_ADDRESS");
     private static Map<String, String> PERMITTED_PATHS;
     static {
         PERMITTED_PATHS = new HashMap<>();
-        PERMITTED_PATHS.put("/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/localhost",
+        PERMITTED_PATHS.put("/jolokia/exec/org.apache.cassandra.db:type=EndpointSnitchInfo/getRack/" + nodeListenAddress,
                             "{\"status\":200}");
         PERMITTED_PATHS.put("/jolokia/read/org.apache.cassandra.db:type=StorageService/LiveNodes",
-                            "{\"status\":200, \"value\": [\"localhost\"]}");
+                            "{\"status\":200, \"value\": [\"" + nodeListenAddress+ "\"]}");
         PERMITTED_PATHS.put("/jolokia/read/org.apache.cassandra.db:type=StorageService/UnreachableNodes",
                             "{\"status\":200}");
         PERMITTED_PATHS.put("/jolokia/read/org.apache.cassandra.db:type=StorageService/JoiningNodes",
