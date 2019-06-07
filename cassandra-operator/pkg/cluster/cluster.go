@@ -507,7 +507,11 @@ func (c *Cluster) objectMetadata(name string, extraLabels ...string) metav1.Obje
 }
 
 func (c *Cluster) createCassandraContainer(rack *v1alpha1.Rack, customConfigMap *v1.ConfigMap) v1.Container {
-
+	env := c.createEnvironmentVariableDefinition(rack)
+	env = append(
+		env,
+		v1.EnvVar{Name: "EXTRA_CLASSPATH", Value: "/extra-lib/cassandra-seed-provider.jar"},
+	)
 	return v1.Container{
 		Name:  cassandraContainerName,
 		Image: v1alpha1helpers.GetCassandraImage(c.definition),
@@ -548,7 +552,7 @@ func (c *Cluster) createCassandraContainer(rack *v1alpha1.Rack, customConfigMap 
 				},
 			},
 		},
-		Env:          []v1.EnvVar{{Name: "EXTRA_CLASSPATH", Value: "/extra-lib/cassandra-seed-provider.jar"}},
+		Env:          env,
 		VolumeMounts: c.createVolumeMounts(customConfigMap),
 	}
 }
