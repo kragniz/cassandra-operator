@@ -89,6 +89,7 @@ func start(_ *cobra.Command, _ []string) error {
 				"endpoint": "/ready",
 			},
 		)
+		logger.Debug("request received")
 		ready, err := nt.IsNodeReady(nodeAddress)
 		if err != nil {
 			w.WriteHeader(500)
@@ -96,7 +97,8 @@ func start(_ *cobra.Command, _ []string) error {
 			return
 		}
 		if !ready {
-			w.WriteHeader(500)
+			w.WriteHeader(503)
+			logger.Debug("503 not ready")
 			return
 		}
 		_, err = fmt.Fprintf(w, "ok")
@@ -111,6 +113,7 @@ func start(_ *cobra.Command, _ []string) error {
 				"endpoint": "/live",
 			},
 		)
+		logger.Debug("request received")
 		_, err := nt.IsNodeReady(nodeAddress)
 		if err != nil {
 			w.WriteHeader(500)
