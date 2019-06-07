@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
@@ -49,7 +50,7 @@ func (n *Nodetool) IsNodeReady(host string) (bool, error) {
 	}
 	nodeStatus := clusterStatus.NodeStatus(host)
 	if nodeStatus == nil {
-		return false, nil
+		return false, fmt.Errorf("node not found: %s", host)
 	}
 	return nodeStatus.IsUpAndNormal(), nil
 }
