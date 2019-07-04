@@ -40,6 +40,7 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	err := r.client.Get(context.TODO(), request.NamespacedName, cass)
 	if errors.IsNotFound(err) {
 		log.Error(nil, "Could not find Cassandra")
+		delete(r.previousCassandras, request.NamespacedName.String())
 		return reconcile.Result{}, nil
 	}
 
@@ -66,7 +67,7 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		r.receiver.Receive(&dispatcher.Event{Kind: operations.AddCluster, Key: clusterID, Data: cass})
 		cass.Annotations["reconciled.cassandra.core.sky.uk"] = "true"
 	} else {
-		previousCassandra, ok := r.previousCassandras[clusterID]
+		previousCassandra, ok := r.previousCassandras[request.NamespacedName.String()]
 		if !ok {
 			return reconcile.Result{}, fmt.Errorf("couldn't find a previousCassandra")
 		}
@@ -83,7 +84,7 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	r.previousCassandras[clusterID] = cass.DeepCopy()
+	r.previousCassandras[request.NamespacedName.String()] = cass.DeepCopy()
 
 	return reconcile.Result{}, nil
 }

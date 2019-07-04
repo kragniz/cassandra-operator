@@ -73,9 +73,10 @@ func main() {
 	entryLog.Info("Setting up controller")
 	c, err := controller.New("cassandra", mgr, controller.Options{
 		Reconciler: &reconcileCassandra{
-			client:   mgr.GetClient(),
-			log:      log.WithName("reconciler"),
-			receiver: receiver,
+			previousCassandras: map[string]*v1alpha1.Cassandra{},
+			client:             mgr.GetClient(),
+			log:                log.WithName("reconciler"),
+			receiver:           receiver,
 		},
 	})
 	if err != nil {
