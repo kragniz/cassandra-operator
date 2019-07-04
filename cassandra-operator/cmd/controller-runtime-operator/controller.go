@@ -22,7 +22,8 @@ type reconcileCassandra struct {
 	client client.Client
 	log    logr.Logger
 
-	eventDispatcher dispatcher.Dispatcher
+	receiver           *operations.Receiver
+	previousCassandras map[string]*v1alpha1.Cassandra
 }
 
 // Implement reconcile.Reconciler so the controller can reconcile objects
@@ -59,17 +60,30 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	r.eventDispatcher.Dispatch(&dispatcher.Event{
-		Kind: operations.UpdateCluster,
-		Key:  clusterID,
-		Data: operations.ClusterUpdate{OldCluster: cass, NewCluster: cass},
-	})
+	_, ok := cass.Annotations["reconciled.cassandra.core.sky.uk"]
+	if !ok {
+		// cassandra has not been created
+		r.receiver.Receive(&dispatcher.Event{Kind: operations.AddCluster, Key: clusterID, Data: cass})
+		cass.Annotations["reconciled.cassandra.core.sky.uk"] = "true"
+	} else {
+		previousCassandra, ok := r.previousCassandras[clusterID]
+		if !ok {
+			return reconcile.Result{}, fmt.Errorf("couldn't find a previousCassandra")
+		}
+		r.receiver.Receive(&dispatcher.Event{
+			Kind: operations.UpdateCluster,
+			Key:  clusterID,
+			Data: operations.ClusterUpdate{OldCluster: previousCassandra, NewCluster: cass},
+		})
+	}
 
 	err = r.client.Update(context.TODO(), cass)
 	if err != nil {
 		log.Error(err, "Could not write Cassandra")
 		return reconcile.Result{}, err
 	}
+
+	r.previousCassandras[clusterID] = cass.DeepCopy()
 
 	return reconcile.Result{}, nil
 }

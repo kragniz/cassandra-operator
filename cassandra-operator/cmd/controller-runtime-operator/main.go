@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -18,6 +19,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/client/clientset/versioned"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/operator/operations"
 )
 
 var (
@@ -35,18 +39,44 @@ func main() {
 	logf.SetLogger(zap.Logger(false))
 	entryLog := log.WithName("entrypoint")
 
+	kubeConfig := config.GetConfigOrDie()
+
+	kubeClientset, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		entryLog.Error(err, "Unable to obtain clientset")
+		os.Exit(1)
+	}
+
+	cassandraClientset := versioned.NewForConfigOrDie(kubeConfig)
+
 	// Setup a Manager
 	entryLog.Info("setting up manager")
-	mgr, err := manager.New(config.GetConfigOrDie(), manager.Options{Scheme: scheme})
+	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme})
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
 	}
 
+	clusters := make(map[string]*cluster.Cluster)
+
+	eventRecorder := cluster.NewEventRecorder(kubeClientset)
+	clusterAccessor := cluster.NewAccessor(kubeClientset, cassandraClientset, eventRecorder)
+
+	receiver := operations.NewEventReceiver(
+		clusters,
+		clusterAccessor,
+		nil,
+		eventRecorder,
+	)
+
 	// Setup a new controller to reconcile ReplicaSets
 	entryLog.Info("Setting up controller")
 	c, err := controller.New("cassandra", mgr, controller.Options{
-		Reconciler: &reconcileCassandra{client: mgr.GetClient(), log: log.WithName("reconciler")},
+		Reconciler: &reconcileCassandra{
+			client:   mgr.GetClient(),
+			log:      log.WithName("reconciler"),
+			receiver: receiver,
+		},
 	})
 	if err != nil {
 		entryLog.Error(err, "unable to set up individual controller")
