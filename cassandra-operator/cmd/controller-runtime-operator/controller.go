@@ -11,12 +11,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
+	v1alpha1helpers "github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/helpers"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/validation"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/dispatcher"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/operator/operations"
 )
 
 type reconcileCassandra struct {
 	// client can be used to retrieve objects from the APIServer.
 	client client.Client
 	log    logr.Logger
+
+	eventDispatcher dispatcher.Dispatcher
 }
 
 // Implement reconcile.Reconciler so the controller can reconcile objects
@@ -44,16 +50,21 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	// Print the Cassandra
 	log.Info("Reconciling Cassandra", "image name", cass.Spec.Pod.Image)
 
-	// Set the label if it is missing
-	if cass.Labels == nil {
-		cass.Labels = map[string]string{}
-	}
-	if cass.Labels["hello"] == "world" {
-		return reconcile.Result{}, nil
+	clusterID := cass.QualifiedName()
+
+	v1alpha1helpers.SetDefaultsForCassandra(cass)
+	err = validation.ValidateCassandra(cass).ToAggregate()
+	if err != nil {
+		log.Error(err, "validation error")
+		return reconcile.Result{}, err
 	}
 
-	// Update the Cassandra
-	cass.Labels["hello"] = "world"
+	r.eventDispatcher.Dispatch(&dispatcher.Event{
+		Kind: operations.UpdateCluster,
+		Key:  clusterID,
+		Data: operations.ClusterUpdate{OldCluster: cass, NewCluster: cass},
+	})
+
 	err = r.client.Update(context.TODO(), cass)
 	if err != nil {
 		log.Error(err, "Could not write Cassandra")
