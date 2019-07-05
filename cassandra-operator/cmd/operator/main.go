@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"time"
 
+	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +28,18 @@ import (
 )
 
 var (
+	metricPollInterval   time.Duration
+	metricRequestTimeout time.Duration
+	logLevel             string
+	allowEmptyDir        bool
+
+	rootCmd = &cobra.Command{
+		Use:               "cassandra-operator",
+		Short:             "Operator for provisioning Cassandra clusters.",
+		PersistentPreRunE: handleArgs,
+		RunE:              startOperator,
+	}
+
 	scheme = runtime.NewScheme()
 	log    = logf.Log.WithName("cassandra-operator")
 )
@@ -32,9 +47,33 @@ var (
 func init() {
 	v1alpha1.AddToScheme(scheme)
 	kscheme.AddToScheme(scheme)
+
+	rootCmd.PersistentFlags().DurationVar(&metricPollInterval, "metric-poll-interval", 5*time.Second, "Poll interval between cassandra nodes metrics retrieval")
+	rootCmd.PersistentFlags().DurationVar(&metricRequestTimeout, "metric-request-timeout", 2*time.Second, "Time limit for cassandra node metrics requests")
+	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "should be one of: debug, info, warn, error, fatal, panic")
+	rootCmd.PersistentFlags().BoolVar(&allowEmptyDir, "allow-empty-dir", false, "Set to true in order to allow creation of clusters which use emptyDir storage")
 }
 
 func main() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func handleArgs(_ *cobra.Command, _ []string) error {
+	var isPositive = func(duration time.Duration) bool {
+		currentTime := time.Now()
+		return currentTime.Add(duration).After(currentTime)
+	}
+
+	if !isPositive(metricPollInterval) {
+		return fmt.Errorf("invalid metric-poll-interval, it must be a positive integer")
+	}
+
+	return nil
+}
+
+func startOperator(_ *cobra.Command, _ []string) error {
 	flag.Parse()
 	logf.SetLogger(zap.Logger(false))
 	entryLog := log.WithName("entrypoint")
@@ -73,10 +112,10 @@ func main() {
 	entryLog.Info("Setting up controller")
 	c, err := controller.New("cassandra", mgr, controller.Options{
 		Reconciler: &reconcileCassandra{
-			previousCassandras: map[string]*v1alpha1.Cassandra{},
 			client:             mgr.GetClient(),
 			log:                log.WithName("reconciler"),
 			receiver:           receiver,
+			previousCassandras: map[string]*v1alpha1.Cassandra{},
 		},
 	})
 	if err != nil {
@@ -109,4 +148,6 @@ func main() {
 		entryLog.Error(err, "unable to run manager")
 		os.Exit(1)
 	}
+
+	return nil
 }
