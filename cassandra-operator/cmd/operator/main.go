@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -74,7 +73,6 @@ func handleArgs(_ *cobra.Command, _ []string) error {
 }
 
 func startOperator(_ *cobra.Command, _ []string) error {
-	flag.Parse()
 	logf.SetLogger(zap.Logger(false))
 	entryLog := log.WithName("entrypoint")
 
