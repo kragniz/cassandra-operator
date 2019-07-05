@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +25,8 @@ import (
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/client/clientset/versioned"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/dispatcher"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/metrics"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/operator/operations"
 )
 
@@ -31,6 +35,8 @@ var (
 	metricRequestTimeout time.Duration
 	logLevel             string
 	allowEmptyDir        bool
+	clusters             map[string]*cluster.Cluster
+	receiver             *operations.Receiver
 
 	rootCmd = &cobra.Command{
 		Use:               "cassandra-operator",
@@ -46,6 +52,8 @@ var (
 func init() {
 	v1alpha1.AddToScheme(scheme)
 	kscheme.AddToScheme(scheme)
+
+	clusters = make(map[string]*cluster.Cluster)
 
 	rootCmd.PersistentFlags().DurationVar(&metricPollInterval, "metric-poll-interval", 5*time.Second, "Poll interval between cassandra nodes metrics retrieval")
 	rootCmd.PersistentFlags().DurationVar(&metricRequestTimeout, "metric-request-timeout", 2*time.Second, "Time limit for cassandra node metrics requests")
@@ -86,20 +94,25 @@ func startOperator(_ *cobra.Command, _ []string) error {
 
 	cassandraClientset := versioned.NewForConfigOrDie(kubeConfig)
 
+	ns := os.Getenv("OPERATOR_NAMESPACE")
+	if ns == "" {
+		entryLog.Info("Operator listening for changes in any namespace")
+	} else {
+		entryLog.Info("Operator listening for changes in namespace", ns)
+	}
+
 	// Setup a Manager
 	entryLog.Info("setting up manager")
-	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme})
+	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns})
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
 	}
 
-	clusters := make(map[string]*cluster.Cluster)
-
 	eventRecorder := cluster.NewEventRecorder(kubeClientset)
 	clusterAccessor := cluster.NewAccessor(kubeClientset, cassandraClientset, eventRecorder)
 
-	receiver := operations.NewEventReceiver(
+	receiver = operations.NewEventReceiver(
 		clusters,
 		clusterAccessor,
 		nil,
@@ -141,6 +154,9 @@ func startOperator(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
+	metricsPoller := metrics.NewMetrics(kubeClientset.CoreV1(), &metrics.Config{RequestTimeout: metricPollInterval})
+	startServer(metricsPoller)
+
 	entryLog.Info("starting manager")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		entryLog.Error(err, "unable to run manager")
@@ -148,4 +164,38 @@ func startOperator(_ *cobra.Command, _ []string) error {
 	}
 
 	return nil
+}
+
+func startServer(metricsPoller *metrics.PrometheusMetrics) {
+	entryLog := log.WithName("metrics")
+
+	startMetricPolling(metricsPoller)
+	statusCheck := newStatusCheck()
+	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/live", livenessAndReadinessCheck)
+	http.HandleFunc("/ready", livenessAndReadinessCheck)
+	http.HandleFunc("/status", statusCheck.statusPage)
+	go func() {
+		entryLog.Error(http.ListenAndServe(":9090", nil), "metrics")
+		os.Exit(0)
+	}()
+}
+
+func startMetricPolling(metricsPoller *metrics.PrometheusMetrics) {
+	entryLog := log.WithName("metrics")
+	go func() {
+		for {
+			for _, c := range clusters {
+				if c.Online {
+					entryLog.Info("Sending request for metrics for cluster %s", c.QualifiedName())
+					receiver.Receive(&dispatcher.Event{Kind: operations.GatherMetrics, Key: c.QualifiedName(), Data: c})
+				}
+			}
+			time.Sleep(metricPollInterval)
+		}
+	}()
+}
+
+func livenessAndReadinessCheck(resp http.ResponseWriter, _ *http.Request) {
+	resp.WriteHeader(http.StatusNoContent)
 }

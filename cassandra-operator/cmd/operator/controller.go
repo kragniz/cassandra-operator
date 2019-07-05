@@ -61,6 +61,9 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+	if cass.Annotations == nil {
+		cass.Annotations = map[string]string{}
+	}
 	_, ok := cass.Annotations["reconciled.cassandra.core.sky.uk"]
 	if !ok {
 		// cassandra has not been created
