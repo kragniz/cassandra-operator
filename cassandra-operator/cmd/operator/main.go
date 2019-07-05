@@ -98,7 +98,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 	if ns == "" {
 		entryLog.Info("Operator listening for changes in any namespace")
 	} else {
-		entryLog.Info("Operator listening for changes in namespace", ns)
+		entryLog.Info("Operator listening for changes in namespace", "namespace", ns)
 	}
 
 	// Setup a Manager
@@ -112,10 +112,13 @@ func startOperator(_ *cobra.Command, _ []string) error {
 	eventRecorder := cluster.NewEventRecorder(kubeClientset)
 	clusterAccessor := cluster.NewAccessor(kubeClientset, cassandraClientset, eventRecorder)
 
+	metricsPoller := metrics.NewMetrics(kubeClientset.CoreV1(), &metrics.Config{RequestTimeout: metricPollInterval})
+	startServer(metricsPoller)
+
 	receiver = operations.NewEventReceiver(
 		clusters,
 		clusterAccessor,
-		nil,
+		metricsPoller,
 		eventRecorder,
 	)
 
@@ -154,9 +157,6 @@ func startOperator(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	metricsPoller := metrics.NewMetrics(kubeClientset.CoreV1(), &metrics.Config{RequestTimeout: metricPollInterval})
-	startServer(metricsPoller)
-
 	entryLog.Info("starting manager")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		entryLog.Error(err, "unable to run manager")
@@ -187,7 +187,7 @@ func startMetricPolling(metricsPoller *metrics.PrometheusMetrics) {
 		for {
 			for _, c := range clusters {
 				if c.Online {
-					entryLog.Info("Sending request for metrics for cluster %s", c.QualifiedName())
+					entryLog.Info("Sending request for metrics", "cluster", c.QualifiedName())
 					receiver.Receive(&dispatcher.Event{Kind: operations.GatherMetrics, Key: c.QualifiedName(), Data: c})
 				}
 			}
