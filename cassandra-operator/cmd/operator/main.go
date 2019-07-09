@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	logr "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +76,11 @@ func handleArgs(_ *cobra.Command, _ []string) error {
 
 	if !isPositive(metricPollInterval) {
 		return fmt.Errorf("invalid metric-poll-interval, it must be a positive integer")
+	}
+
+	_, err := logr.ParseLevel(logLevel)
+	if err != nil {
+		return fmt.Errorf("invalid log-level")
 	}
 
 	return nil
