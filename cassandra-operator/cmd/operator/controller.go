@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -35,11 +36,16 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	// set up a convinient log object so we don't have to type request over and over again
 	log := r.log.WithValues("request", request)
 
+	clusterID := fmt.Sprintf("%s.%s", request.Namespace, request.Name)
+
 	// Fetch the Cassandra from the cache
 	cass := &v1alpha1.Cassandra{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, cass)
 	if errors.IsNotFound(err) {
 		log.Error(nil, "Could not find Cassandra")
+
+		deletedCass := &v1alpha1.Cassandra{ObjectMeta: metav1.ObjectMeta{Name: request.Name, Namespace: request.Namespace}}
+		r.receiver.Receive(&dispatcher.Event{Kind: operations.DeleteCluster, Key: clusterID, Data: deletedCass})
 		delete(r.previousCassandras, request.NamespacedName.String())
 		return reconcile.Result{}, nil
 	}
@@ -51,8 +57,6 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	// Print the Cassandra
 	log.Info("Reconciling Cassandra", "image name", cass.Spec.Pod.Image)
-
-	clusterID := cass.QualifiedName()
 
 	v1alpha1helpers.SetDefaultsForCassandra(cass)
 	err = validation.ValidateCassandra(cass).ToAggregate()
