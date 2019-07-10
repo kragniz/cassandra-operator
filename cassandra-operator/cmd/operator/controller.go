@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -25,6 +28,7 @@ type reconcileCassandra struct {
 
 	receiver           *operations.Receiver
 	previousCassandras map[string]*v1alpha1.Cassandra
+	previousConfigMaps map[string]*corev1.ConfigMap
 }
 
 // Implement reconcile.Reconciler so the controller can reconcile objects
@@ -63,6 +67,36 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err != nil {
 		log.Error(err, "validation error")
 		return reconcile.Result{}, err
+	}
+
+	configMap := &corev1.ConfigMap{}
+	configMapNamespacedName := types.NamespacedName{Name: cass.CustomConfigMapName(), Namespace: request.Namespace}
+	err = r.client.Get(context.TODO(), configMapNamespacedName, configMap)
+	if errors.IsNotFound(err) {
+		log.Info("Could not find ConfigMap")
+
+		cm, ok := r.previousConfigMaps[configMapNamespacedName.String()]
+		if ok {
+			r.receiver.Receive(&dispatcher.Event{Kind: operations.DeleteCustomConfig, Key: clusterID, Data: cm})
+			delete(r.previousConfigMaps, configMapNamespacedName.String())
+		}
+	} else if err != nil {
+		log.Error(err, "Could not fetch ConfigMap")
+		return reconcile.Result{}, err
+	} else {
+		log.Info("got a new configmap", "configMap", configMap)
+
+		cm, ok := r.previousConfigMaps[configMapNamespacedName.String()]
+		if ok {
+			// we've seen this before, check if it's updated
+			if !reflect.DeepEqual(cm.Data, configMap.Data) {
+				r.receiver.Receive(&dispatcher.Event{Kind: operations.UpdateCustomConfig, Key: clusterID, Data: configMap})
+			}
+		} else {
+			// we've not seen this before, add it
+			r.previousConfigMaps[configMapNamespacedName.String()] = configMap.DeepCopy()
+			r.receiver.Receive(&dispatcher.Event{Kind: operations.AddCustomConfig, Key: clusterID, Data: configMap})
+		}
 	}
 
 	if cass.Annotations == nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -12,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -21,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
@@ -109,7 +112,8 @@ func startOperator(_ *cobra.Command, _ []string) error {
 
 	// Setup a Manager
 	entryLog.Info("setting up manager")
-	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns})
+	syncPeriod := 30 * time.Second
+	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns, SyncPeriod: &syncPeriod})
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
@@ -136,6 +140,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 			log:                log.WithName("reconciler"),
 			receiver:           receiver,
 			previousCassandras: map[string]*v1alpha1.Cassandra{},
+			previousConfigMaps: map[string]*corev1.ConfigMap{},
 		},
 	})
 	if err != nil {
@@ -160,6 +165,31 @@ func startOperator(_ *cobra.Command, _ []string) error {
 	if err := c.Watch(&source.Kind{Type: &corev1.Pod{}},
 		&handler.EnqueueRequestForOwner{OwnerType: &v1alpha1.Cassandra{}, IsController: true}); err != nil {
 		entryLog.Error(err, "unable to watch Pods")
+		os.Exit(1)
+	}
+
+	// Watch ConfigMaps and enqueue a likely cluster
+	err = c.Watch(
+		&source.Kind{Type: &corev1.ConfigMap{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
+				if !strings.HasSuffix(a.Meta.GetName(), "-config") {
+					return []reconcile.Request{}
+				}
+
+				clusterName := strings.TrimSuffix(a.Meta.GetName(), "-config")
+
+				return []reconcile.Request{
+					{NamespacedName: types.NamespacedName{
+						Name:      clusterName,
+						Namespace: a.Meta.GetNamespace(),
+					}},
+				}
+			}),
+		})
+
+	if err != nil {
+		entryLog.Error(err, "unable to watch ConfigMaps")
 		os.Exit(1)
 	}
 
