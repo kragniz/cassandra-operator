@@ -148,7 +148,7 @@ func (matcher *haveEvent) Match(actual interface{}) (success bool, err error) {
 }
 
 func (matcher *haveEvent) lastTimestampIsCloseTo(eventTimestamp v1.Time) bool {
-	return math.Abs(eventTimestamp.Sub(*matcher.expected.LastTimestampCloseTo).Seconds()) < 120
+	return math.Abs(eventTimestamp.Sub(*matcher.expected.LastTimestampCloseTo).Seconds()) < 45
 }
 
 func (matcher *haveEvent) FailureMessage(actual interface{}) (message string) {
