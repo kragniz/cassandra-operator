@@ -119,7 +119,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	eventRecorder := cluster.NewEventRecorder(kubeClientset)
+	eventRecorder := cluster.NewEventRecorder(kubeClientset, scheme)
 	clusterAccessor := cluster.NewAccessor(kubeClientset, cassandraClientset, eventRecorder)
 
 	metricsPoller := metrics.NewMetrics(kubeClientset.CoreV1(), &metrics.Config{RequestTimeout: metricPollInterval})
