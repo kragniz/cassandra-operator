@@ -112,7 +112,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 
 	// Setup a Manager
 	entryLog.Info("setting up manager")
-	syncPeriod := 30 * time.Second
+	syncPeriod := 1 * time.Hour
 	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns, SyncPeriod: &syncPeriod})
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
@@ -132,13 +132,15 @@ func startOperator(_ *cobra.Command, _ []string) error {
 		eventRecorder,
 	)
 
+	stopCh := make(chan struct{})
+
 	// Setup a new controller to reconcile ReplicaSets
 	entryLog.Info("Setting up controller")
 	c, err := controller.New("cassandra", mgr, controller.Options{
 		Reconciler: &reconcileCassandra{
 			client:             mgr.GetClient(),
 			log:                log.WithName("reconciler"),
-			receiver:           receiver,
+			eventDispatcher:    dispatcher.New(receiver.Receive, stopCh),
 			previousCassandras: map[string]*v1alpha1.Cassandra{},
 			previousConfigMaps: map[string]*corev1.ConfigMap{},
 		},

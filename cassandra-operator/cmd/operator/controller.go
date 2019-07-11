@@ -26,7 +26,7 @@ type reconcileCassandra struct {
 	client client.Client
 	log    logr.Logger
 
-	receiver           *operations.Receiver
+	eventDispatcher    dispatcher.Dispatcher
 	previousCassandras map[string]*v1alpha1.Cassandra
 	previousConfigMaps map[string]*corev1.ConfigMap
 }
@@ -49,7 +49,7 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		log.Error(nil, "Could not find Cassandra")
 
 		deletedCass := &v1alpha1.Cassandra{ObjectMeta: metav1.ObjectMeta{Name: request.Name, Namespace: request.Namespace}}
-		r.receiver.Receive(&dispatcher.Event{Kind: operations.DeleteCluster, Key: clusterID, Data: deletedCass})
+		r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.DeleteCluster, Key: clusterID, Data: deletedCass})
 		delete(r.previousCassandras, request.NamespacedName.String())
 		return reconcile.Result{}, nil
 	}
@@ -77,7 +77,7 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 		cm, ok := r.previousConfigMaps[configMapNamespacedName.String()]
 		if ok {
-			r.receiver.Receive(&dispatcher.Event{Kind: operations.DeleteCustomConfig, Key: clusterID, Data: cm})
+			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.DeleteCustomConfig, Key: clusterID, Data: cm})
 			delete(r.previousConfigMaps, configMapNamespacedName.String())
 		}
 	} else if err != nil {
@@ -90,12 +90,12 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		if ok {
 			// we've seen this before, check if it's updated
 			if !reflect.DeepEqual(cm.Data, configMap.Data) {
-				r.receiver.Receive(&dispatcher.Event{Kind: operations.UpdateCustomConfig, Key: clusterID, Data: configMap})
+				r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.UpdateCustomConfig, Key: clusterID, Data: configMap})
 			}
 		} else {
 			// we've not seen this before, add it
 			r.previousConfigMaps[configMapNamespacedName.String()] = configMap.DeepCopy()
-			r.receiver.Receive(&dispatcher.Event{Kind: operations.AddCustomConfig, Key: clusterID, Data: configMap})
+			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.AddCustomConfig, Key: clusterID, Data: configMap})
 		}
 	}
 
@@ -105,14 +105,14 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	_, ok := cass.Annotations["reconciled.cassandra.core.sky.uk"]
 	if !ok {
 		// cassandra has not been created
-		r.receiver.Receive(&dispatcher.Event{Kind: operations.AddCluster, Key: clusterID, Data: cass})
+		r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.AddCluster, Key: clusterID, Data: cass})
 		cass.Annotations["reconciled.cassandra.core.sky.uk"] = "true"
 	} else {
 		previousCassandra, ok := r.previousCassandras[request.NamespacedName.String()]
 		if !ok {
 			return reconcile.Result{}, fmt.Errorf("couldn't find a previousCassandra")
 		}
-		r.receiver.Receive(&dispatcher.Event{
+		r.eventDispatcher.Dispatch(&dispatcher.Event{
 			Kind: operations.UpdateCluster,
 			Key:  clusterID,
 			Data: operations.ClusterUpdate{OldCluster: previousCassandra, NewCluster: cass},
