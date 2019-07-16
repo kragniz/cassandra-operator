@@ -18,6 +18,7 @@ import (
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1"
 	v1alpha1helpers "github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/helpers"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/apis/cassandra/v1alpha1/validation"
+	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/cluster"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/dispatcher"
 	"github.com/sky-uk/cassandra-operator/cassandra-operator/pkg/operator/operations"
 )
@@ -115,9 +116,9 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		if !ok {
 			return reconcile.Result{}, fmt.Errorf("couldn't find a previousCassandra")
 		}
-		err = validation.ValidateCassandraUpdate(oldCluster, newCluster).ToAggregate()
+		err = validation.ValidateCassandraUpdate(previousCassandra, cass).ToAggregate()
 		if err != nil {
-			r.eventRecorder.Event(oldCluster, v1.EventTypeWarning, cluster.InvalidChangeEvent, err.Error())
+			r.eventRecorder.Event(previousCassandra, corev1.EventTypeWarning, cluster.InvalidChangeEvent, err.Error())
 		}
 		r.eventDispatcher.Dispatch(&dispatcher.Event{
 			Kind: operations.UpdateCluster,
