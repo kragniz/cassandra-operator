@@ -141,6 +141,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 			client:             mgr.GetClient(),
 			log:                log.WithName("reconciler"),
 			eventDispatcher:    dispatcher.New(receiver.Receive, stopCh),
+			eventRecorder:      eventRecorder,
 			previousCassandras: map[string]*v1alpha1.Cassandra{},
 			previousConfigMaps: map[string]*corev1.ConfigMap{},
 		},

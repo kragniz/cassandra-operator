@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -25,6 +26,8 @@ type reconcileCassandra struct {
 	// client can be used to retrieve objects from the APIServer.
 	client client.Client
 	log    logr.Logger
+
+	eventRecorder record.EventRecorder
 
 	eventDispatcher    dispatcher.Dispatcher
 	previousCassandras map[string]*v1alpha1.Cassandra
@@ -111,6 +114,10 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		previousCassandra, ok := r.previousCassandras[request.NamespacedName.String()]
 		if !ok {
 			return reconcile.Result{}, fmt.Errorf("couldn't find a previousCassandra")
+		}
+		err = validation.ValidateCassandraUpdate(oldCluster, newCluster).ToAggregate()
+		if err != nil {
+			r.eventRecorder.Event(oldCluster, v1.EventTypeWarning, cluster.InvalidChangeEvent, err.Error())
 		}
 		r.eventDispatcher.Dispatch(&dispatcher.Event{
 			Kind: operations.UpdateCluster,
