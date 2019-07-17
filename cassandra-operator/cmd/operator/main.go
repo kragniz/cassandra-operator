@@ -54,8 +54,14 @@ var (
 )
 
 func init() {
-	v1alpha1.AddToScheme(scheme)
-	kscheme.AddToScheme(scheme)
+	err := v1alpha1.AddToScheme(scheme)
+	if err != nil {
+		panic(err)
+	}
+	err = kscheme.AddToScheme(scheme)
+	if err != nil {
+		panic(err)
+	}
 
 	clusters = make(map[string]*cluster.Cluster)
 
@@ -112,8 +118,7 @@ func startOperator(_ *cobra.Command, _ []string) error {
 
 	// Setup a Manager
 	entryLog.Info("setting up manager")
-	syncPeriod := 1 * time.Hour
-	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns, SyncPeriod: &syncPeriod})
+	mgr, err := manager.New(kubeConfig, manager.Options{Scheme: scheme, Namespace: ns})
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)

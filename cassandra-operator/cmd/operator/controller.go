@@ -46,7 +46,6 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	clusterID := fmt.Sprintf("%s.%s", request.Namespace, request.Name)
 
-	// Fetch the Cassandra from the cache
 	cass := &v1alpha1.Cassandra{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, cass)
 	if errors.IsNotFound(err) {
@@ -63,9 +62,6 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	// Print the Cassandra
-	log.Info("Reconciling Cassandra", "image name", cass.Spec.Pod.Image)
-
 	v1alpha1helpers.SetDefaultsForCassandra(cass)
 	err = validation.ValidateCassandra(cass).ToAggregate()
 	if err != nil {
@@ -73,33 +69,32 @@ func (r *reconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	configMap := &corev1.ConfigMap{}
+	newConfigmap := &corev1.ConfigMap{}
 	configMapNamespacedName := types.NamespacedName{Name: cass.CustomConfigMapName(), Namespace: request.Namespace}
-	err = r.client.Get(context.TODO(), configMapNamespacedName, configMap)
+	err = r.client.Get(context.TODO(), configMapNamespacedName, newConfigmap)
 	if errors.IsNotFound(err) {
 		log.Info("Could not find ConfigMap")
 
-		cm, ok := r.previousConfigMaps[configMapNamespacedName.String()]
+		oldConfigmap, ok := r.previousConfigMaps[configMapNamespacedName.String()]
 		if ok {
-			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.DeleteCustomConfig, Key: clusterID, Data: cm})
+			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.DeleteCustomConfig, Key: clusterID, Data: oldConfigmap})
 			delete(r.previousConfigMaps, configMapNamespacedName.String())
 		}
 	} else if err != nil {
 		log.Error(err, "Could not fetch ConfigMap")
 		return reconcile.Result{}, err
 	} else {
-		log.Info("got a new configmap", "configMap", configMap)
+		log.Info("got a new configmap", "configMap", newConfigmap)
 
-		cm, ok := r.previousConfigMaps[configMapNamespacedName.String()]
-		if ok {
+		if oldConfigmap, ok := r.previousConfigMaps[configMapNamespacedName.String()]; ok {
 			// we've seen this before, check if it's updated
-			if !reflect.DeepEqual(cm.Data, configMap.Data) {
-				r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.UpdateCustomConfig, Key: clusterID, Data: configMap})
+			if !reflect.DeepEqual(oldConfigmap.Data, newConfigmap.Data) {
+				r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.UpdateCustomConfig, Key: clusterID, Data: newConfigmap})
 			}
 		} else {
 			// we've not seen this before, add it
-			r.previousConfigMaps[configMapNamespacedName.String()] = configMap.DeepCopy()
-			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.AddCustomConfig, Key: clusterID, Data: configMap})
+			r.previousConfigMaps[configMapNamespacedName.String()] = newConfigmap.DeepCopy()
+			r.eventDispatcher.Dispatch(&dispatcher.Event{Kind: operations.AddCustomConfig, Key: clusterID, Data: newConfigmap})
 		}
 	}
 
